@@ -1,0 +1,71 @@
+<!DOCTYPE HTML>
+
+<html class="bg-neutral">
+<head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>channels</title>
+		<link rel='stylesheet' href='static/styles.css'>
+        <link rel="icon" type="image/x-icon" href="static/favicon.ico">
+		<script src="reqs.js"></script>
+</head>
+
+<body class="sm:p-4 p-1 flex flex-col">
+
+    <did class="flex flex-col border-primary sm:border-2 sm:rounded-lg rounded-xl my-2 sm:p-4 p-2 m-auto bg-base-100 lg:w-[70%] w-full">
+    <div class="flex flex-row  justify-center gap-2 relative">
+        <a href="index.html">
+            <svg class="h-10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="stroke-primary" d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path class="stroke-primary" d="M9.00002 15.3802H13.92C15.62 15.3802 17 14.0002 17 12.3002C17 10.6002 15.62 9.22021 13.92 9.22021H7.15002" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+                <path class="stroke-primary" d="M8.57 10.7701L7 9.19012L8.57 7.62012" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </a>
+
+		<form action="javascript:search(tags_elem.value.split(' '))" class="flex flex-row rounded-2xl border border-primary max-w-fit mx-auto">
+			<input id="tags_elem" type="text" placeholder="space separated list of tags" class="input border-none w-full max-w-xs ml-2" />
+			<input type="submit" value="search" class="btn btn-primary"></input>
+        </form>
+    </div>
+
+    <div class="rounded-2xl border border-primary max-w-fit mx-auto mt-2">
+        <span class="my-auto mx-2 text-lg">Sort by</span>
+        <select id="sort_type" class="btn btn-primary p-1 min-h-0 h-fit p-2">
+            <option>  views des  </option>
+            <option>  views asc  </option>
+            <option>    recent   </option>
+       <!-- <option>   relevant  </option> -->
+        </select>
+    </div>
+
+    <div class="divider my-2"></div> 
+    
+    <div id="vidgrid" class="flex flex-col md:grid md:gap-4 md:justify-center" style="grid-template-columns: repeat(auto-fit, 280px);">
+    </div>
+</div>
+
+<script>
+    async function search(tags)
+    {
+        vidgrid.innerHTML='<p class="mx-auto my-32 text-3xl">loading...</p>';
+        try
+        {
+        results=(await (await get_live_tags(tags,sort_type.selectedIndex)).json()).data.streams.edges;
+        } catch(e){vidgrid.innerHTML=error;return;}
+        
+        vidgrid.innerHTML='';
+        results.forEach(stream => {
+               vidgrid.innerHTML+=
+               `<div class="flex flex-col mb-auto">
+               <a target="_blank" href="channel.html?${stream.node.broadcaster.login}" class="m-auto text-md text-accent">${stream.node.broadcaster.login}</a>
+               <button onclick="play_live(this,'${stream.node.broadcaster.login}')" class="flex flex-col">
+               <span class="m-auto text-sm text-accent">🎮 ${stream.node.game?stream.node.game.name:"no category"}  | 👁 ${stream.node.viewersCount}</span>
+               <img class="rounded-md" src="${stream.node.previewImageURL}"/>
+               <span class="break-all line-clamp-2 m-auto">${stream.node.title}</span>
+               </button>
+               </div>`;
+        });
+    }
+</script>
+
+</body></html>

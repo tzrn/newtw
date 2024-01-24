@@ -1,0 +1,99 @@
+<!DOCTYPE HTML>
+
+<html class="bg-neutral">
+<head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>channel</title>
+		<link rel='stylesheet' href='static/styles.css'>
+        <link rel="icon" type="image/x-icon" href="static/favicon.ico">
+		<script src="reqs.js"></script>
+</head>
+
+<body class="sm:p-4 p-1 flex flex-col">
+    <did id="content" class="flex flex-col border-primary sm:border-2 sm:rounded-lg rounded-xl my-2 sm:p-4 p-2 m-auto bg-base-100 lg:w-[70%] w-full">
+   
+    <!-- HEADER -->
+    <div class="flex flex-row relative justify-between">
+        <a href="index.html">
+            <svg class="h-10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="stroke-primary" d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path class="stroke-primary" d="M9.00002 15.3802H13.92C15.62 15.3802 17 14.0002 17 12.3002C17 10.6002 15.62 9.22021 13.92 9.22021H7.15002" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+                <path class="stroke-primary" d="M8.57 10.7701L7 9.19012L8.57 7.62012" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </a>
+        
+        <div class="flex flex-col">
+            <h1 id="header" class="text-2xl text mx-auto"></h1>
+            <div class="flex flex-row justify-center" id="fbutton"></div>
+        </div>
+
+        <div id="live_button" class="w-16"></div>
+    </div>
+    
+    <div class="divider my-2"></div> 
+    
+    <!-- VODS LIST -->
+    <div id="vods_grid" class="flex flex-col md:grid gap-4 md:justify-center" style="grid-template-columns: repeat(auto-fit, 280px);">
+    </div>
+</div>
+
+<script>
+    channel=window.location.search.slice(1);
+    header.innerHTML=channel;
+
+    function unfollow(channel)
+    {
+        window.localStorage.follows=follows.filter(f=>f!=channel);
+        window.location='index.html';
+    }
+
+    async function watch_vod(element,id)
+    {
+        before=element.innerHTML;
+        element.innerHTML=loading;
+        window.open(`${linkprefix}${await get_m3u8_link(id)}`);
+        element.innerHTML=before;
+    }
+
+    async function show_vods()
+    {
+        vods_grid.innerHTML=loading;
+        try{
+        vods=(await (await get_vods(channel)).json()).data.user.videos.edges; }
+        catch (e) {vods_grid.innerHTML=error;return;}
+
+        vods_grid.innerHTML='';
+        vods.forEach(v => {
+            vods_grid.innerHTML+=
+            `<button onclick="watch_vod(this,'${v.node.id}')" class="flex flex-col m-auto w-full justify-center">
+                <img class="rounded-md w-full" src="${ v.node.previewThumbnailURL }"/>
+                <span class="text-center text-sm text-accent m-auto">${prettydate(v.node.publishedAt)} | ${(v.node.lengthSeconds/3600).toPrecision(2)}h</span>
+                <span class="break-all line-clamp-2 m-auto">${ v.node.title }</span>
+            </button>`;
+        });
+    }
+
+    async function check_live()
+    {
+        stream=(await (await request(channel_info_req(channel))).json()).data.user.stream;
+        if(stream)
+        live_button.innerHTML=
+            `<button class="btn btn-primary md:absolute right-0 px-2 w-16 min-h-0 h-10"
+                    onclick="play_live(this,channel)">
+                watch live
+            </button>`
+    }
+
+    show_vods();
+    check_live();
+
+    if(follows.includes(channel))
+    fbutton.innerHTML=
+        `<button onclick="unfollow(channel)" class="btn btn-primary min-h-0 h-fit w-fit p-2">unfollow</button>`;
+    else
+    fbutton.innerHTML=
+        `<button onclick="add_new_follow(channel);reaload();" class="btn btn-primary min-h-0 h-fit w-fit p-2">follow</button>`;
+</script>
+
+</body></html>

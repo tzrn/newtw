@@ -1,0 +1,119 @@
+<!DOCTYPE HTML>
+
+<html class="bg-neutral">
+<head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>channels</title>
+		<link rel='stylesheet' href='static/styles.css'>
+        <link rel="icon" type="image/x-icon" href="static/favicon.ico">
+		<script src="reqs.js"></script>
+</head>
+
+<body class="sm:p-4 p-1 flex flex-col">
+
+<did class="flex flex-col border-primary sm:border-2 sm:rounded-lg rounded-xl my-2 sm:p-4 p-2 m-auto bg-base-100 lg:w-[70%] w-full">
+	<div class="flex flex-row relative">
+		<!-- UPDATE BUTTON -->
+		<button onclick="update_channels()">
+			<svg class="w-8 fill-primary" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+				<path d="M15,6V1.76l-1.7,1.7A7,7,0,1,0,14.92,9H13.51a5.63,5.63,0,1,1-1.2-4.55L10.76,6Z"/>
+			</svg>
+        </button>
+
+		<!-- FOLLOW FORM -->
+		<form action="javascript:add_new_follow(newfollow.value);(()=>{update_channels();newfollow.value='';})()" class="flex flex-row rounded-2xl border border-primary max-w-fit sm:m-auto m-2">
+			<input id="newfollow" type="text" placeholder="new channel" class="input border-none w-full max-w-xs ml-2" />
+			<input value="follow" type="submit" class="btn btn-primary"></input>
+		</form>
+		<a class="sm:absolute right-0 text-3xl my-auto" href="discover.html">🧭</a>
+	</div>
+
+	<div class="divider my-4">live</div> 
+
+	<!-- LIVE CHANNELS LIST -->
+	<div id="live_box" class="grid sm:grid-cols-2 gap-4 justify-center sm:px-4"></div>
+
+	<div class="divider my-4">offline</div>
+
+	<!-- FOLLOWS LIST -->
+	<div id="follows_box" class="grid justify-around" style="grid-template-columns: repeat(auto-fit, 85px);">
+	</div>
+</did>
+
+<script>
+	const MAX_CHANNELS_PER_REQUEST=35;
+
+	async function update_channels()
+	{
+		follows_box.innerHTML=loading;
+		live_box.innerHTML='';
+		infos=[];
+
+		try
+		{
+		for(var i=0;i<follows.length;i+=MAX_CHANNELS_PER_REQUEST)
+		infos=infos.concat(await (await 
+			request(`[${follows.slice(i,i+MAX_CHANNELS_PER_REQUEST)
+				.reduce((p,n)=>p.concat(channel_info_req(n)),[]).join(',')}]`))
+			    .json());
+		} catch(e)
+		{
+			console.log(e);
+			follows_box.innerHTML=error;
+			return;
+		}
+
+		follows.map((c,i)=>
+		{
+			if(!infos[i].data.user)
+			{
+				infos[i]={};
+				infos[i].stream=null;
+			}
+			else
+				infos[i]=infos[i].data.user;
+			infos[i].channel=follows[i];
+		});
+
+		follows_box.innerHTML='';
+		infos.forEach(f => {
+			if(!f.stream)
+			follows_box.innerHTML+=
+			`<a class="text-center flex flex-col py-1 transition-all" href="channel.html?${f.channel}">
+				<div>
+					<div class="avatar">
+						<div class="rounded-lg ring ring-primary ring-offset-base-100 ring-offset-2">
+							<img src="${f.profileImageURL}"/>
+						</div>
+					</div>
+				</div>
+				<span class="line-clamp-1 break-all text-[0.75rem]">${f.channel}</span>
+			</a>`;
+			else
+			{
+			duration=((Date.now() - new Date(f.stream.createdAt))/3600000).toPrecision(2);
+			live_box.innerHTML+=
+		    `<div class="flex flex-row">
+				<a href="channel.html?${f.channel}" class="flex flex-col my-auto">
+					<div class="avatar online">
+						<div class="w-[75px] rounded-lg ring ring-primary ring-offset-base-100 ring-offset-2">
+							<img src="${f.profileImageURL}"/>
+						</div>
+					</div>
+				</a>
+				
+				<div onclick="play_live(this,'${f.channel}')" class="ml-4 flex flex-col text-left cursor-pointer">
+					<h1 class="text-md break-all line-clamp-2">${f.lastBroadcast.title}</h1>
+					<p class="text-accent text-sm">📺 ${f.channel} | 🎮 ${f.stream.game.name} | 🕒 started ${duration}h ago</p>
+				</div>
+			<div/>`
+			}
+		});
+	}
+
+	update_channels();
+</script>
+
+<button class="m-auto btn min-h-0 h-fit p-2" onclick="uid=prompt('unique id:');if(uid){window.localStorage.uid=uid;reload();}">set id</button>
+</body></html>
